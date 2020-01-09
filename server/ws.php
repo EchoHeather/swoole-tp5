@@ -70,6 +70,11 @@ class Ws
      * @param $response
      */
     public function onRequest($request, $response){
+        if($request->server['request_uri'] == "/favicon.ico") {
+            $response->status("404");
+            $response->end();
+            return;
+        }
         $_SERVER = [];
         if(isset($request->header)){
             foreach($request->header as $k => $v){
@@ -105,6 +110,7 @@ class Ws
                 $_FILES[$k] = $v;
             }
         }
+//        $this->writeLog();
         $_POST['http_server'] = $this->ws;
         // 执行应用并响应thinkphp
         ob_start();
@@ -156,6 +162,20 @@ class Ws
         //todo redis删除有序集合里的fd
         \app\common\lib\Predis::getInstance()->sRem(config('redis.live_game_key') , $fd);
         echo "client is close: {$fd}\n";
+    }
+
+    /**
+     * 写入日志
+     */
+    public function writeLog() {
+        $datas = array_merge(['date'=> date('Y-m-d H:i:s')], $_GET, $_POST, $_SERVER);
+        $logs = '';
+        foreach ($datas as $k => $v) {
+            $logs .= $k . ":" .$v . " ";
+        }
+        swoole_async_writefile(APP_PATH.'../runtime/log/'.date('Ym').'/'.date('d').'_access.log', $logs.PHP_EOL, function($filename){
+
+        }, FILE_APPEND);
     }
 }
 
